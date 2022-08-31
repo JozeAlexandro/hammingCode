@@ -12,6 +12,10 @@ static inline int pow2( int x )
     return 1 << x;
 }
 
+/// @todo Реализовать через битовые маски
+
+/// @todo class
+/// @todo logger
 
 int main()
 {
@@ -31,7 +35,7 @@ int main()
 
     std::cout << "rawData = " << rawData << std::endl;
 
-    /// @todo boost::dynamic_bitset
+
     boost::dynamic_bitset<> codeBlock( codeBlockSize );
 
 
@@ -94,6 +98,7 @@ int main()
         codeBlock[ it.first ] = rawData[ idxRawMsg++ ];
     }
 
+    /// @todo map cntrl to info...
     // Заполнение сообщения контрольными битами
     for( const auto & cntrlBit : cntrlBitPos )
     {
@@ -113,11 +118,35 @@ int main()
 
     std::cout << std::endl << "codeBlock = " << codeBlock << std::endl;
 
+    /// @test Внесение ошибки
+    /// @todo Random
+    codeBlock[ 2 ] = 0;
+
+    std::set<int> errorBits;
+    std::cout << "Checking...\n";
+    for( const auto & cntrlBit : cntrlBitPos )
+    {
+        int sum = codeBlock[ cntrlBit ];
+        for( const auto & check : infoBit2CntrlBits )
+        {
+            /// @todo Массив + бинарный поиск
+            if( check.second.end() !=
+                    std::find( check.second.begin(), check.second.end(), cntrlBit ) )
+            {
+                sum ^= codeBlock[ check.first ];
+            }
+        }
+        std::cout << "CntrlBit " << cntrlBit << " --- " << sum << std::endl;
+        if( sum )
+        {
+            errorBits.insert( cntrlBit );
+        }
+    }
+
+    /// @todo Поиск неисправного бита и исправление
+
+
     std::cout << std::endl;
-
-
-
-
 
 
 
