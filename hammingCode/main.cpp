@@ -2,6 +2,8 @@
 #include <boost/dynamic_bitset.hpp>
 #include <map>
 #include <forward_list>
+#include <set>
+#include <algorithm>
 
 // http://all-ht.ru/inf/systems/p_0_14.html
 
@@ -22,7 +24,7 @@ int main()
     while( minCtrlBitCount > ( pow2(minCtrlBitCount) - infoBlockLength - 1 ) )
         ++minCtrlBitCount;
 
-    boost::dynamic_bitset<> rawData( infoBlockLength, 0xAF );
+    boost::dynamic_bitset<> rawData( infoBlockLength, 0x4D );
 
     // Длина закодированного блока
     const int codeBlockSize = infoBlockLength + minCtrlBitCount;
@@ -33,65 +35,89 @@ int main()
     boost::dynamic_bitset<> codeBlock( codeBlockSize );
 
 
+
+
+
+    // Поиск позиций контрольных бит
+    std::cout << "Позиции контрольных бит: ";
+    std::set< int > cntrlBitPos;
+    for( int idx = 0, cntrlPos = 1;
+         idx < minCtrlBitCount;
+         ++idx, cntrlPos = pow2( idx ) )
+    {
+        cntrlBitPos.insert( cntrlPos - 1 );
+    }
+
+    for( const auto & i : cntrlBitPos )
+        std::cout << i << " ";
+
+
     std::map<int, std::forward_list< int > > infoBit2CntrlBits;
 
-
-    // Заполнение информационными битами
-    // Все биты, порядковые номера которых являются степенью двойки - контрольные
-    std::cout << "Позиции контрольных бит: ";
-    for( int crntPos = 0, cntrlPos = 0;
-         crntPos < minCtrlBitCount;
-         ++crntPos, cntrlPos = pow2(crntPos) )
+    // Поиск групп для информационных бит
+    for( int idx = 0;
+         idx < codeBlockSize;
+         ++idx )
     {
-        // Заполнение бит данных
-        while( crntPos != cntrlPos )
+        // Именно информационный
+        if( cntrlBitPos.end() == cntrlBitPos.find( idx ) )
         {
-
             std::forward_list< int > crntCntrlPosBits;
-            auto copyCrntPos(crntPos);
-
-            for( int copyCrntPosIdx = 0;
-                 copyCrntPos != 0;
-                 copyCrntPos >>= 1, copyCrntPosIdx++ )
+            int infoPos = idx + 1;
+            int cntrlCrntPos = 0;
+            while( infoPos )
             {
-                if( 1 & copyCrntPos )
+                if( 1 & infoPos )
                 {
-                    crntCntrlPosBits.push_front( copyCrntPosIdx );
+                    crntCntrlPosBits.emplace_front( pow2( cntrlCrntPos ) - 1 );
                 }
+
+                cntrlCrntPos++;
+                infoPos >>= 1;
             }
 
-            infoBit2CntrlBits[ crntPos ] = crntCntrlPosBits;
-
-
-            codeBlock[ crntPos++ ] = rawData[ 0 ];
-            rawData >>= 1;
+            infoBit2CntrlBits[ idx ] = crntCntrlPosBits;
         }
-
-        std::cout << cntrlPos << " ";
-
-        /// @todo Контрольные биты
-        //codeBlock[ cntrlPos ] = 0;
     }
-/*
-    // Заполнение контрольными битами
-    for( int crntPos = 0, cntrlPos = 0;
-         crntPos < minCtrlBitCount;
-         ++crntPos, cntrlPos = pow2(crntPos) )
-    {
-        while( crntPos != cntrlPos )
-        {
-            int copyCrnt = crntPos;
-            while( copyCrnt )
-            {
 
+
+    // Заполнение сообщения данными
+    std::cout << std::endl;
+    for(auto & it : infoBit2CntrlBits)
+    {
+        std::cout << "Inf: " << it.first << " --- Cntrl: ";
+        for(auto &v : it.second)
+            std::cout << v  << " ";
+        std::cout << std::endl;
+
+        static int idxRawMsg = 0;
+        codeBlock[ it.first ] = rawData[ idxRawMsg++ ];
+    }
+
+    // Заполнение сообщения контрольными битами
+    for( const auto & cntrlBit : cntrlBitPos )
+    {
+        int sum = 0;
+        for( const auto & check : infoBit2CntrlBits )
+        {
+            /// @todo Массив + бинарный поиск
+            if( check.second.end() !=
+                    std::find( check.second.begin(), check.second.end(), cntrlBit ) )
+            {
+                sum ^= codeBlock[ check.first ];
             }
         }
-    }*/
+        codeBlock[ cntrlBit ] = sum;
+    }
 
 
     std::cout << std::endl << "codeBlock = " << codeBlock << std::endl;
 
     std::cout << std::endl;
+
+
+
+
 
 
 
