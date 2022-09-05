@@ -28,7 +28,7 @@ public:
     struct sHammingMessage
     {
         int mMessage;
-        int mInfoLength;
+        int mInfoLength; /// @todo Не только info...
     };
 
 /* --- Открытые методы ------------------------------------------------------ */

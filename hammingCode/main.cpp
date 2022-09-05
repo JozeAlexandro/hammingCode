@@ -25,9 +25,11 @@ int main()
             hamming.code( cHamming::sHammingMessage{ 0x4d, 7 } );
 
     // Внесение ошибки
-    codeMsg.mMessage = ( codeMsg.mMessage ^ 1 ) & 1;
+    cHamming::sHammingMessage errMsg = codeMsg;
+    errMsg.mMessage |= (1 << 4);
 
 
+    cHamming::sHammingMessage decodeMsg = hamming.decode( errMsg );
 
     return 0;
 }

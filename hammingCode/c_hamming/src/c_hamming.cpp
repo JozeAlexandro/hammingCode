@@ -37,8 +37,6 @@ cHamming::sHammingMessage cHamming::code( sHammingMessage message )
 
 
 
-
-
     // Контейнер для закодированного сообщения
     boost::dynamic_bitset<> codeBlock( codeBlockSize );
 
@@ -111,8 +109,6 @@ cHamming::sHammingMessage cHamming::code( sHammingMessage message )
 
 
 
-
-
     return sHammingMessage{ static_cast<int>(codeBlock.to_ulong()),
                 static_cast<int>(codeBlock.size()) };
 }
@@ -126,8 +122,38 @@ cHamming::sHammingMessage cHamming::decode( cHamming::sHammingMessage codeMess )
     std::set< int > cntrlBitPos( findCntrlBitPositions( minCtrlBitCount ) );
 
 
-/*
+    // Контейнер для закодированного сообщения
+    boost::dynamic_bitset<> codeBlock( codeMess.mInfoLength, codeMess.mMessage );
 
+
+    std::map<int, std::forward_list< int > > infoBit2CntrlBits;
+    // Поиск групп для информационных бит
+    for( int idx = 0;
+         idx < codeMess.mInfoLength;
+         ++idx )
+    {
+        // Именно информационный
+        if( cntrlBitPos.end() == cntrlBitPos.find( idx ) )
+        {
+            std::forward_list< int > crntCntrlPosBits;
+            int infoPos = idx + 1;
+            int cntrlCrntPos = 0;
+            while( infoPos )
+            {
+                if( 1 & infoPos )
+                {
+                    crntCntrlPosBits.emplace_front( pow2( cntrlCrntPos ) - 1 );
+                }
+
+                cntrlCrntPos++;
+                infoPos >>= 1;
+            }
+
+            infoBit2CntrlBits[ idx ] = crntCntrlPosBits;
+        }
+    }
+
+    /// @todo Поиск неисправного бита. Синдром ошибки
     std::set<int> errorBits;
     std::cout << "Checking...\n";
     for( const auto & cntrlBit : cntrlBitPos )
@@ -148,15 +174,45 @@ cHamming::sHammingMessage cHamming::decode( cHamming::sHammingMessage codeMess )
             errorBits.insert( cntrlBit );
         }
     }
-*/
-    /// @todo Поиск неисправного бита и исправление
+
+
+    std::cout << "Before " << codeBlock << std::endl;
+    // Поиск ошибочного бита
+    int errBit = 0;
+    for( const auto & err : errorBits )
+    {
+        errBit += pow2( err ) - 1;
+    }
+
+    if( errorBits.size() )
+    {
+        std::cout << "Help it..." << errBit << " \n";
+        codeBlock[ errBit ].flip();
+    }
+
+    std::cout << "After " << codeBlock << std::endl;
+
+
+
+    // Удаление контрольных бит
+    boost::dynamic_bitset<> messageBlock;//( codeMess.mInfoLength - cntrlBitPos.size() );
+    for( int idx = 0;
+         idx < codeMess.mInfoLength;
+         ++idx )
+    {
+        // Именно информационный
+        if( cntrlBitPos.end() == cntrlBitPos.find( idx ) )
+        {
+            messageBlock.push_back( codeBlock[ idx ] );
+        }
+    }
 
 
     std::cout << std::endl;
 
 
-    /// @test
-    return codeMess;
+    return sHammingMessage{ static_cast<int>(messageBlock.to_ulong()),
+                static_cast<int>(messageBlock.size()) };
 }
 
 
