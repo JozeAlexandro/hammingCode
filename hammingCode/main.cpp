@@ -12,13 +12,13 @@
 
 
 /// @todo Реализовать через битовые маски
-/// и напрямую. + pimpl
+/// и через boost::dynamic_bitset. + pimpl
 
 /// @todo logger
 /// @todo Large message (more than sizeof(int)
 /// @todo Дать возможность выбирать кол-во данных и кол-во контрольных бит
 
-/// @todo Написать тест
+
 static bool test( const cHamming &hamming, cHamming::sHammingMessage inVal );
 
 int main()
