@@ -37,9 +37,9 @@ public:
     /// @details наименьший кол-во...
     /// @param @todo
     /// @return Закодированное сообщение
-    sHammingMessage code( sHammingMessage message );
+    sHammingMessage code( sHammingMessage message ) const;
 
-    sHammingMessage decode( sHammingMessage codeMess );
+    sHammingMessage decode( sHammingMessage codeMess ) const;
 
 
 
@@ -47,12 +47,12 @@ public:
 /* --- Закрытые методы ------------------------------------------------------ */
 private:
     /// @brief Поиск минимального количества контрольных бит
-    int findMinCntrlBit( const sHammingMessage& mess );
+    int findMinCntrlBit( const sHammingMessage& mess ) const;
 
     /// @brief Поиск позиций контрольных бит
     ///
     ///
-    std::set< int > findCntrlBitPositions( int minCtrlBitCount );
+    std::set< int > findCntrlBitPositions( int minCtrlBitCount ) const;
 };
 
 #endif // CHAMMING_H

@@ -20,7 +20,7 @@ cHamming::cHamming()
 }
 
 /// @todo Разделить это на приватные методы
-cHamming::sHammingMessage cHamming::code( sHammingMessage message )
+cHamming::sHammingMessage cHamming::code( sHammingMessage message ) const
 {
     /// @todo Проверки std::static_assert
 
@@ -113,7 +113,7 @@ cHamming::sHammingMessage cHamming::code( sHammingMessage message )
                 static_cast<int>(codeBlock.size()) };
 }
 
-cHamming::sHammingMessage cHamming::decode( cHamming::sHammingMessage codeMess )
+cHamming::sHammingMessage cHamming::decode( cHamming::sHammingMessage codeMess )  const
 {
     // Поиск минимального количества контрольных бит
     int minCtrlBitCount = findMinCntrlBit( codeMess );
@@ -156,6 +156,7 @@ cHamming::sHammingMessage cHamming::decode( cHamming::sHammingMessage codeMess )
     /// @todo Поиск неисправного бита. Синдром ошибки
     std::set<int> errorBits;
     std::cout << "Checking...\n";
+    int cntrlBitOrderNum = 0;
     for( const auto & cntrlBit : cntrlBitPos )
     {
         int sum = codeBlock[ cntrlBit ];
@@ -168,20 +169,21 @@ cHamming::sHammingMessage cHamming::decode( cHamming::sHammingMessage codeMess )
                 sum ^= codeBlock[ check.first ];
             }
         }
-        std::cout << "CntrlBit " << cntrlBit << " --- " << sum << std::endl;
+        std::cout << "CntrlBit " << cntrlBit << "(" << cntrlBitOrderNum << ") --- " << sum << std::endl;
         if( sum )
         {
-            errorBits.insert( cntrlBit );
+            errorBits.insert( cntrlBitOrderNum );
         }
+        cntrlBitOrderNum++;
     }
 
 
     std::cout << "Before " << codeBlock << std::endl;
     // Поиск ошибочного бита
-    int errBit = 0;
+    int errBit = -1;
     for( const auto & err : errorBits )
     {
-        errBit += pow2( err ) - 1;
+        errBit += pow2( err );
     }
 
     if( errorBits.size() )
@@ -220,7 +222,7 @@ cHamming::sHammingMessage cHamming::decode( cHamming::sHammingMessage codeMess )
 
 // private
 
-int cHamming::findMinCntrlBit( const cHamming::sHammingMessage &mess )
+int cHamming::findMinCntrlBit( const cHamming::sHammingMessage &mess )  const
 {
     /// @todo Почему -1 описать
     int minCtrlBitCount = 1;
@@ -230,7 +232,7 @@ int cHamming::findMinCntrlBit( const cHamming::sHammingMessage &mess )
     return minCtrlBitCount;
 }
 
-std::set<int> cHamming::findCntrlBitPositions( int minCtrlBitCount )
+std::set<int> cHamming::findCntrlBitPositions( int minCtrlBitCount )  const
 {
     std::cout << "Позиции контрольных бит: ";
     std::set< int > cntrlBitPos;
