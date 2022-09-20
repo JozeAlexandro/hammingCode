@@ -14,25 +14,18 @@ static inline int pow2( int x )
     return 1 << x;
 }
 
-cHamming::cHamming()
-{
-
-}
 
 /// @todo Разделить это на приватные методы
-cHamming::sHammingMessage cHamming::code( sHammingMessage message ) const
+boost::dynamic_bitset<> cHamming::code( const boost::dynamic_bitset<> &rawData ) const
 {
-    /// @todo Проверки std::static_assert
+    /// @todo Проверки std::static_assert ?
 
     // Поиск минимального количества контрольных бит
-    int minCtrlBitCount = findMinCntrlBit( message );
+    int minCtrlBitCount = findMinCntrlBit( rawData );
 
-
-    // "Сырые" пользовательские данные
-    boost::dynamic_bitset<> rawData( message.mInfoLength, message.mMessage );
 
     // Длина закодированного блока
-    const int codeBlockSize = message.mInfoLength + minCtrlBitCount;
+    const int codeBlockSize = rawData.size() + minCtrlBitCount;
     std::cout << "rawData = " << rawData << std::endl;
 
 
@@ -109,27 +102,26 @@ cHamming::sHammingMessage cHamming::code( sHammingMessage message ) const
 
 
 
-    return sHammingMessage{ static_cast<int>(codeBlock.to_ulong()),
-                static_cast<int>(codeBlock.size()) };
+    return codeBlock;
 }
 
-cHamming::sHammingMessage cHamming::decode( cHamming::sHammingMessage codeMess )  const
+boost::dynamic_bitset<> cHamming::decode( const boost::dynamic_bitset<> &codeBlock )  const
 {
     // Поиск минимального количества контрольных бит
-    int minCtrlBitCount = findMinCntrlBit( codeMess );
+    int minCtrlBitCount = findMinCntrlBit( codeBlock );
 
     // Поиск позиций контрольных бит
     std::set< int > cntrlBitPos( findCntrlBitPositions( minCtrlBitCount ) );
 
 
-    // Контейнер для закодированного сообщения
-    boost::dynamic_bitset<> codeBlock( codeMess.mInfoLength, codeMess.mMessage );
+    boost::dynamic_bitset<> copyCodeBlock( codeBlock );
 
+/// @todo Возможно метод поиска информационных бит? Или лишак?
 
     std::map<int, std::forward_list< int > > infoBit2CntrlBits;
     // Поиск групп для информационных бит
-    for( int idx = 0;
-         idx < codeMess.mInfoLength;
+    for( unsigned idx = 0;
+         idx < copyCodeBlock.size();
          ++idx )
     {
         // Именно информационный
@@ -159,14 +151,14 @@ cHamming::sHammingMessage cHamming::decode( cHamming::sHammingMessage codeMess )
     int cntrlBitOrderNum = 0;
     for( const auto & cntrlBit : cntrlBitPos )
     {
-        int sum = codeBlock[ cntrlBit ];
+        int sum = copyCodeBlock[ cntrlBit ];
         for( const auto & check : infoBit2CntrlBits )
         {
             /// @todo Массив + бинарный поиск
             if( check.second.end() !=
                     std::find( check.second.begin(), check.second.end(), cntrlBit ) )
             {
-                sum ^= codeBlock[ check.first ];
+                sum ^= copyCodeBlock[ check.first ];
             }
         }
         std::cout << "CntrlBit " << cntrlBit << "(" << cntrlBitOrderNum << ") --- " << sum << std::endl;
@@ -178,7 +170,7 @@ cHamming::sHammingMessage cHamming::decode( cHamming::sHammingMessage codeMess )
     }
 
 
-    std::cout << "Before " << codeBlock << std::endl;
+    std::cout << "Before " << copyCodeBlock << std::endl;
     // Поиск ошибочного бита
     int errBit = -1;
     for( const auto & err : errorBits )
@@ -188,33 +180,35 @@ cHamming::sHammingMessage cHamming::decode( cHamming::sHammingMessage codeMess )
 
     if( errorBits.size() )
     {
-        std::cout << "Help it..." << errBit << " \n";
-        codeBlock[ errBit ].flip();
+        std::cout << "Error bit is..." << errBit << " \n";
+        copyCodeBlock[ errBit ].flip();
+    }
+    else
+    {
+        std::cout << "Error doesn't found\n";
     }
 
-    std::cout << "After " << codeBlock << std::endl;
+    std::cout << "After " << copyCodeBlock << std::endl;
 
 
 
     // Удаление контрольных бит
     boost::dynamic_bitset<> messageBlock;//( codeMess.mInfoLength - cntrlBitPos.size() );
-    for( int idx = 0;
-         idx < codeMess.mInfoLength;
+    for( unsigned idx = 0;
+         idx < copyCodeBlock.size();
          ++idx )
     {
         // Именно информационный
         if( cntrlBitPos.end() == cntrlBitPos.find( idx ) )
         {
-            messageBlock.push_back( codeBlock[ idx ] );
+            messageBlock.push_back( copyCodeBlock[ idx ] );
         }
     }
 
 
     std::cout << std::endl;
 
-
-    return sHammingMessage{ static_cast<int>(messageBlock.to_ulong()),
-                static_cast<int>(messageBlock.size()) };
+    return messageBlock;
 }
 
 
@@ -222,11 +216,12 @@ cHamming::sHammingMessage cHamming::decode( cHamming::sHammingMessage codeMess )
 
 // private
 
-int cHamming::findMinCntrlBit( const cHamming::sHammingMessage &mess )  const
+int cHamming::findMinCntrlBit( const boost::dynamic_bitset<> &mess )  const
 {
     /// @todo Почему -1 описать
     int minCtrlBitCount = 1;
-    while( minCtrlBitCount > ( pow2(minCtrlBitCount) - mess.mInfoLength - 1 ) )
+
+    while( minCtrlBitCount > ( pow2(minCtrlBitCount) - static_cast< int >( mess.size() ) - 1 ) )
         ++minCtrlBitCount;
 
     return minCtrlBitCount;

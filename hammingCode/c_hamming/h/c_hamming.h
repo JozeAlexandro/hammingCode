@@ -7,8 +7,11 @@
  * @ etc
  * ****************************************************************************/
 
-
+#include <boost/dynamic_bitset.hpp>
 #include <set>
+
+/// @todo static methods
+/// @todo singleton
 
 /** ****************************************************************************
  * @brief Класс, реализующий кодирование-декодирование Хэмминга
@@ -17,29 +20,19 @@
  * ****************************************************************************/
 class cHamming
 {
-/* --- Конструкторы/Деструкторы --------------------------------------------- */
-public:
-    cHamming();
-
 /* --- Типы данных ---------------------------------------------------------- */
     public:
 
-    ///
-    struct sHammingMessage
-    {
-        int mMessage;
-        int mInfoLength; /// @todo Не только info...
-    };
 
 /* --- Открытые методы ------------------------------------------------------ */
 public:
     /// @brief Метод кодирования сообщения по методу Хэмминга.
-    /// @details наименьший кол-во...
+    /// @details Использует минимальное количество контрольных бит
     /// @param @todo
     /// @return Закодированное сообщение
-    sHammingMessage code( sHammingMessage message ) const;
+    boost::dynamic_bitset<> code( const boost::dynamic_bitset<> &rawData ) const;
 
-    sHammingMessage decode( sHammingMessage codeMess ) const;
+    boost::dynamic_bitset<> decode( const boost::dynamic_bitset<> &codeBlock ) const;
 
 
 
@@ -47,7 +40,7 @@ public:
 /* --- Закрытые методы ------------------------------------------------------ */
 private:
     /// @brief Поиск минимального количества контрольных бит
-    int findMinCntrlBit( const sHammingMessage& mess ) const;
+    int findMinCntrlBit( const boost::dynamic_bitset<> &mess ) const;
 
     /// @brief Поиск позиций контрольных бит
     ///

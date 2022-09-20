@@ -6,48 +6,54 @@
 #include <algorithm>
 
 
+
 #include "c_hamming.h"
 
-// http://all-ht.ru/inf/systems/p_0_14.html
+#include <boost/dynamic_bitset.hpp>
 
-
-/// @todo Реализовать через битовые маски
-/// и через boost::dynamic_bitset. + pimpl
 
 /// @todo logger
-/// @todo Large message (more than sizeof(int)
-/// @todo Дать возможность выбирать кол-во данных и кол-во контрольных бит
+/// @todo doxy
+/// @todo UML
+
+static bool test( const cHamming &hamming, boost::dynamic_bitset<> &&msg );
 
 
-static bool test( const cHamming &hamming, cHamming::sHammingMessage inVal );
+
+
 
 int main()
 {
     cHamming hamming;
-    test( hamming , cHamming::sHammingMessage{ 0x4d, 7 } );
+    const bool isIntegral { test( hamming , boost::dynamic_bitset<>{ 6 * 8, 0x1234DEADBEEF } ) };
 
-    return 0;
+     std::cout << "Integral test = " << isIntegral << std::endl;
+     return 0;
 }
 
-static bool test(const cHamming &hamming, cHamming::sHammingMessage inVal )
+static bool test(const cHamming &hamming, boost::dynamic_bitset<> &&msg )
 {
-    std::cout << "Testing... " << inVal.mMessage << "( len = " << inVal.mInfoLength << " ):\n";
+    std::cout << "Testing... " << msg << "( len = " << msg.size() << " ):\n";
     bool result = true;
-    const cHamming::sHammingMessage codeMsg = hamming.code( inVal );
 
-    for( int errPos = 0; errPos < codeMsg.mInfoLength; ++errPos )
+    auto codeMsg = hamming.code( msg );
+
+    for( unsigned errPos = 0; errPos < codeMsg.size(); ++errPos )
     {
-        const bool revBit = !(codeMsg.mMessage & ( 1 << errPos ));
-        cHamming::sHammingMessage errMsg = codeMsg;
+        // Вносим ошибку
+        codeMsg[ errPos ].flip();
 
-        revBit ? errMsg.mMessage |= ( 1 << errPos )
-               : errMsg.mMessage &= ~( 1 << errPos );
 
-        cHamming::sHammingMessage decodeMsg = hamming.decode( errMsg );
-        bool bTst = decodeMsg.mMessage == inVal.mMessage;
-        std::cout << "errPos = " << errPos << " => " << bTst << std::endl;
+        const auto decodeMsg = hamming.decode( codeMsg );
+        const bool bTst = msg == decodeMsg;
+
+        std::cout << "errPos = " << errPos << " Test's result " << bTst << std::endl;
 
         if( !bTst ) result = bTst;
+        std::cout << "\n______________________________________\n";
+
+        // Возврат в корректное состояние
+        codeMsg[ errPos ].flip();
     }
 
     return result;
